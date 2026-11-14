@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:resepku/models/recipe.dart';
-import 'package:provider/provider.dart';
-import 'package:resepku/providers/favorite_provider.dart';
 
 class DetailPage extends StatefulWidget {
-  const DetailPage({super.key, required this.recipe});
+  const DetailPage({
+    super.key,
+    required this.recipe,
+  });
 
   final Recipe recipe;
 
@@ -13,21 +15,25 @@ class DetailPage extends StatefulWidget {
 }
 
 class _DetailPageState extends State<DetailPage> {
-  late int _servings; // state lokal: hanya halaman ini yang butuh
+  late int _servings;
 
   @override
   void initState() {
     super.initState();
-    _servings = widget.recipe.servings; // nilai awal dari data resep
+    _servings = widget.recipe.servings;
   }
 
   void _addServing() {
-    setState(() => _servings++);
+    setState(() {
+      _servings++;
+    });
   }
 
   void _removeServing() {
     if (_servings > 1) {
-      setState(() => _servings--);
+      setState(() {
+        _servings--;
+      });
     }
   }
 
@@ -35,60 +41,134 @@ class _DetailPageState extends State<DetailPage> {
   Widget build(BuildContext context) {
     final recipe = widget.recipe;
     final totalCalories = recipe.caloriesPerServing * _servings;
-    final textTheme = Theme.of(context).textTheme;
-    final isFavorite = context.watch<FavoriteProvider>().isFavorite(recipe);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(recipe.name),
-        actions: [
-          IconButton(
-            icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
-            onPressed: () => context.read<FavoriteProvider>().toggle(recipe),
+      body: CustomScrollView(
+        slivers: [
+          // Header gambar resep
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 260,
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(
+                recipe.name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black54,
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+              ),
+              background: CachedNetworkImage(
+                imageUrl: recipe.image,
+                fit: BoxFit.cover,
+                placeholder: (context, url) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                },
+                errorWidget: (context, url, error) {
+                  return const Center(
+                    child: Icon(
+                      Icons.broken_image,
+                      size: 50,
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            '${recipe.cuisine} • ${recipe.difficulty} • ${recipe.totalTimeMinutes} menit',
-            style: textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 16),
-          Card(
+
+          // Informasi resep dan pengaturan porsi
+          SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Porsi', style: textTheme.titleMedium),
-                  const Spacer(),
-                  IconButton.filledTonal(
-                    onPressed: _servings > 1 ? _removeServing : null,
-                    icon: const Icon(Icons.remove),
+                  Text('Cuisine: ${recipe.cuisine}'),
+                  Text('Kesulitan: ${recipe.difficulty}'),
+                  Text(
+                    'Waktu: ${recipe.totalTimeMinutes} menit',
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('$_servings', style: textTheme.titleLarge),
-                  ),
-                  IconButton.filledTonal(
-                    onPressed: _addServing,
-                    icon: const Icon(Icons.add),
+                  const SizedBox(height: 16),
+
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          const Text('Jumlah Porsi'),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                onPressed: _servings > 1
+                                    ? _removeServing
+                                    : null,
+                                icon: const Icon(
+                                  Icons.remove_circle_outline,
+                                ),
+                              ),
+                              Text(
+                                '$_servings',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge,
+                              ),
+                              IconButton(
+                                onPressed: _addServing,
+                                icon: const Icon(
+                                  Icons.add_circle_outline,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            'Total Kalori: $totalCalories kkal',
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text('Total kalori: $totalCalories kkal', style: textTheme.titleMedium),
-          const SizedBox(height: 24),
-          Text('Bahan', style: textTheme.titleLarge),
-          for (final item in recipe.ingredients)
-            ListTile(
-              dense: true,
-              leading: const Icon(Icons.check_circle_outline),
-              title: Text(item),
+
+          // Judul daftar bahan
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+              child: Text(
+                'Bahan',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
             ),
+          ),
+
+          // Daftar bahan resep
+          SliverList.builder(
+            itemCount: recipe.ingredients.length,
+            itemBuilder: (context, index) {
+              return ListTile(
+                leading: const Icon(
+                  Icons.check_circle_outline,
+                ),
+                title: Text(recipe.ingredients[index]),
+              );
+            },
+          ),
+
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 16),
+          ),
         ],
       ),
     );
