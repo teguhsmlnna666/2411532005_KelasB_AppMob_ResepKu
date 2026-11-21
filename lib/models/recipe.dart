@@ -8,8 +8,9 @@ class Recipe {
   final int servings;
   final int caloriesPerServing;
   final double rating;
-  final String image;
-  final List<String> ingredients; 
+  final String image; // URL foto resep
+  final List<String> ingredients;
+  final List<String> instructions;
 
   const Recipe({
     required this.id,
@@ -22,8 +23,29 @@ class Recipe {
     required this.caloriesPerServing,
     required this.rating,
     required this.image,
-    required this.ingredients
+    required this.ingredients,
+    this.instructions = const [],
   });
 
   int get totalTimeMinutes => prepTimeMinutes + cookTimeMinutes;
+
+  /// Membuat Recipe dari satu objek JSON (Map hasil jsonDecode).
+  /// Field yang tidak ada di JSON diberi nilai bawaan agar aplikasi tidak crash.
+  factory Recipe.fromJson(Map<String, dynamic> json) {
+    return Recipe(
+      id: int.tryParse(json['id'].toString()) ?? 0,
+      name: json['name'] as String,
+      cuisine: json['cuisine'] as String? ?? '-',
+      difficulty: json['difficulty'] as String? ?? '-',
+      prepTimeMinutes: int.tryParse(json['prepTimeMinutes']?.toString() ?? '') ?? 0,
+      cookTimeMinutes: int.tryParse(json['cookTimeMinutes']?.toString() ?? '') ?? 0,
+      servings: int.tryParse(json['servings']?.toString() ?? '') ?? 1,
+      caloriesPerServing: int.tryParse(json['caloriesPerServing']?.toString() ?? '') ?? 0,
+      // JSON tidak membedakan 4 dan 4.0: ambil sebagai num lalu ubah ke double
+      rating: (json['rating'] as num? ?? 0).toDouble(),
+      image: json['image'] as String? ?? '',
+      ingredients: List<String>.from(json['ingredients'] as List? ?? const []),
+      instructions: List<String>.from(json['instructions'] as List? ?? const []),
+    );
+  }
 }
