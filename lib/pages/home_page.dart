@@ -9,6 +9,7 @@ import 'package:resepku/widgets/recipe_grid_card.dart';
 import 'package:resepku/widgets/recipe_tile.dart';
 import 'package:resepku/pages/add_recipe_page.dart';
 import 'package:resepku/pages/search_page.dart';
+import 'package:resepku/providers/settings_provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,7 +19,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  bool _isGrid = false;
   late Future<List<Recipe>> _recipesFuture;
 
   @override
@@ -63,20 +63,27 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Pilihan tampilan kini dibaca dari SettingsProvider (tersimpan di HP)
+    final settings = context.watch<SettingsProvider>();
+    final isGrid = settings.isGrid;
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
           children: [
             Image.asset('assets/images/logo.png', height: 32),
             const SizedBox(width: 8),
-            const Text('ResepKu'),
+            // Flexible: judul boleh mengecil bila AppBar penuh tombol (layar 360 dp)
+            const Flexible(
+              child: Text('ResepKu', overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         actions: [
           IconButton(
-            tooltip: _isGrid ? 'Tampilan list' : 'Tampilan grid',
-            icon: Icon(_isGrid ? Icons.view_list : Icons.grid_view),
-            onPressed: () => setState(() => _isGrid = !_isGrid),
+            tooltip: isGrid ? 'Tampilan list' : 'Tampilan grid',
+            icon: Icon(isGrid ? Icons.view_list : Icons.grid_view),
+            onPressed: () => context.read<SettingsProvider>().setGrid(!isGrid),
           ),
           const FavoriteBadgeButton(),
           IconButton(
@@ -126,7 +133,7 @@ class _HomePageState extends State<HomePage> {
 
           return RefreshIndicator(
             onRefresh: _refresh,
-            child: _isGrid ? _buildGrid(recipes) : _buildList(recipes),
+            child: isGrid ? _buildGrid(recipes) : _buildList(recipes),
           );
         },
       ),
